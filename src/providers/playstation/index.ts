@@ -1,0 +1,210 @@
+import { Article, NewsProvider } from '../../types';
+import { decodeHtmlEntities, stripHtmlTags } from '../../utils/text';
+
+/**
+ * PlayStation Blog News Provider
+ *
+ * Implements the NewsProvider contract for PlayStation Blog.
+ * Retrieves and normalizes the official RSS feed into shared Article models.
+ */
+export class PlayStationProvider implements NewsProvider {
+  public readonly id = 'playstation';
+  public readonly name = 'PlayStation Blog';
+  public readonly description =
+    'Official PlayStation news, game announcements, developer stories, PlayStation Plus updates, and more.';
+  public readonly homepage = 'https://blog.playstation.com/';
+  public readonly icon = 'https://www.google.com/s2/favicons?domain=blog.playstation.com&sz=64';
+  public readonly categories = ['Gaming'];
+
+  // Local server-side proxy route fetching from the official PlayStation Blog feed
+  private readonly proxyUrl = '/api/proxy/playstation/rss';
+
+  /**
+   * Fetches and normalizes news articles from PlayStation Blog.
+   */
+  public async fetchArticles(options?: { forceFresh?: boolean }): Promise<Article[]> {
+    const url = options?.forceFresh ? `${this.proxyUrl}?fresh=1` : this.proxyUrl;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          Accept: 'application/xml, text/xml, */*',
+        },
+      });
+    } catch (networkError: any) {
+      console.error(
+        '[PlayStationProvider] Network error connecting to proxy:',
+        networkError?.message || networkError
+      );
+      throw new Error(
+        'Unable to reach the PlayStation Blog news feed service. Please check your network connection.'
+      );
+    }
+
+    if (!response.ok) {
+      console.error(
+        `[PlayStationProvider] Proxy responded with HTTP status ${response.status}: ${response.statusText}`
+      );
+      throw new Error(
+        `PlayStation Blog service returned error status ${response.status}. Please try again later.`
+      );
+    }
+
+    const xmlText = await response.text();
+    if (!xmlText || xmlText.trim().length === 0) {
+      console.warn('[PlayStationProvider] Received empty response body from feed');
+      return [];
+    }
+
+    return this.parseRssXml(xmlText);
+  }
+
+  /**
+   * Parses raw RSS XML into normalized Article models.
+   * Tolerates malformed individual items without crashing the feed.
+   */
+  private parseRssXml(xmlString: string): Article[] {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+
+    // Check for XML parsing syntax errors
+    const parseError = xmlDoc.querySelector('parsererror');
+    if (parseError) {
+      console.error(
+        '[PlayStationProvider] XML DOMParser syntax error:',
+        parseError.textContent
+      );
+      throw new Error('Received malformed XML data from the PlayStation Blog news feed.');
+    }
+
+    const itemElements = xmlDoc.querySelectorAll('item');
+    const articles: Article[] = [];
+
+    itemElements.forEach((item, index) => {
+      try {
+        const article = this.normalizeItem(item, index);
+        if (article) {
+          articles.push(article);
+        }
+      } catch (itemError) {
+        console.warn(
+          `[PlayStationProvider] Skipped malformed item at index ${index}:`,
+          itemError
+        );
+      }
+    });
+
+    // Sort chronologically newest-first
+    articles.sort((a, b) => {
+      const timeA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+      const timeB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    return articles;
+  }
+
+  /**
+   * Normalizes a single RSS <item> element into an Article.
+   */
+  private normalizeItem(item: Element, fallbackIndex: number): Article | null {
+    // 1. Title
+    const rawTitle = item.querySelector('title')?.textContent || '';
+    const title = decodeHtmlEntities(rawTitle.trim());
+    if (!title) {
+      return null; // Title is required
+    }
+
+    // 2. Link / URL
+    const rawUrl = item.querySelector('link')?.textContent || '';
+    const url = rawUrl.trim();
+    if (!url || !url.startsWith('http')) {
+      return null; // Valid URL is required
+    }
+
+    // 3. ID / GUID
+    const rawGuid = item.querySelector('guid')?.textContent || '';
+    const id = rawGuid.trim() || url || `ps-article-${fallbackIndex}-${Date.now()}`;
+
+    // 4. Publication Date
+    const rawPubDate = item.querySelector('pubDate')?.textContent || '';
+    const publishedAt = rawPubDate.trim() || undefined;
+
+    // 5. Author (from dc:creator or author tag)
+    const rawAuthor =
+      item.getElementsByTagNameNS('*', 'creator')[0]?.textContent ||
+      item.querySelector('author')?.textContent ||
+      '';
+    const author = decodeHtmlEntities(rawAuthor.trim()) || undefined;
+
+    // 6. Summary / Description
+    let summary: string | undefined;
+    const rawDesc = item.querySelector('description')?.textContent || '';
+    if (rawDesc) {
+      const cleaned = decodeHtmlEntities(stripHtmlTags(rawDesc));
+      if (cleaned) {
+        summary = cleaned.length > 280 ? cleaned.slice(0, 277) + '...' : cleaned;
+      }
+    }
+
+    // 7. Image Extraction
+    let imageUrl: string | undefined;
+
+    // Check enclosure for direct image link
+    const enclosure = item.querySelector('enclosure');
+    if (enclosure) {
+      const encUrl = enclosure.getAttribute('url');
+      const encType = enclosure.getAttribute('type') || '';
+      if (encUrl && (encType.startsWith('image/') || /\.(jpe?g|png|webp|gif)/i.test(encUrl))) {
+        imageUrl = encUrl;
+      }
+    }
+
+    // Check <content:encoded> for <img> tags
+    if (!imageUrl) {
+      const encodedContent = item.getElementsByTagNameNS('*', 'encoded')[0]?.textContent || '';
+      if (encodedContent) {
+        const imgMatch = encodedContent.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch && imgMatch[1]) {
+          imageUrl = imgMatch[1];
+        }
+      }
+    }
+
+    // Fallback to <description> for <img> tags if needed
+    if (!imageUrl && rawDesc) {
+      const descImgMatch = rawDesc.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (descImgMatch && descImgMatch[1]) {
+        imageUrl = descImgMatch[1];
+      }
+    }
+
+    // 8. Categories / Tags
+    const categoryElements = item.querySelectorAll('category');
+    const categories: string[] = [];
+    categoryElements.forEach((catEl) => {
+      const catText = decodeHtmlEntities(catEl.textContent || '').trim();
+      if (catText && !categories.includes(catText)) {
+        categories.push(catText);
+      }
+    });
+
+    const article: Article = {
+      id,
+      title,
+      url,
+      providerId: this.id,
+      publishedAt,
+      author,
+      summary,
+      imageUrl,
+      categories: categories.length > 0 ? categories : undefined,
+    };
+
+    return article;
+  }
+}
+
+// Export a singleton instance of the PlayStation provider
+export const playStationProvider = new PlayStationProvider();

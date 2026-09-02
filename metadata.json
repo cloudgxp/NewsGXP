@@ -1,0 +1,7 @@
+{
+  "name": "NewsGXP",
+  "description": "Modular news aggregation portal built around decoupled content providers, featuring live Crunchyroll news in a high-density editorial layout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
