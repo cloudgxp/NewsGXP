@@ -1,5 +1,6 @@
 import { Article, NewsProvider } from '../../types';
 import { decodeHtmlEntities, stripHtmlTags } from '../../utils/text';
+import { fetchProviderXml } from '../../services/feedClient';
 
 /**
  * PlayStation Blog News Provider
@@ -16,42 +17,11 @@ export class PlayStationProvider implements NewsProvider {
   public readonly icon = 'https://www.google.com/s2/favicons?domain=blog.playstation.com&sz=64';
   public readonly categories = ['Gaming'];
 
-  // Local server-side proxy route fetching from the official PlayStation Blog feed
-  private readonly proxyUrl = '/api/proxy/playstation/rss';
-
   /**
    * Fetches and normalizes news articles from PlayStation Blog.
    */
   public async fetchArticles(options?: { forceFresh?: boolean }): Promise<Article[]> {
-    const url = options?.forceFresh ? `${this.proxyUrl}?fresh=1` : this.proxyUrl;
-
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        headers: {
-          Accept: 'application/xml, text/xml, */*',
-        },
-      });
-    } catch (networkError: any) {
-      console.error(
-        '[PlayStationProvider] Network error connecting to proxy:',
-        networkError?.message || networkError
-      );
-      throw new Error(
-        'Unable to reach the PlayStation Blog news feed service. Please check your network connection.'
-      );
-    }
-
-    if (!response.ok) {
-      console.error(
-        `[PlayStationProvider] Proxy responded with HTTP status ${response.status}: ${response.statusText}`
-      );
-      throw new Error(
-        `PlayStation Blog service returned error status ${response.status}. Please try again later.`
-      );
-    }
-
-    const xmlText = await response.text();
+    const xmlText = await fetchProviderXml(this.id, this.name, options);
     if (!xmlText || xmlText.trim().length === 0) {
       console.warn('[PlayStationProvider] Received empty response body from feed');
       return [];
@@ -75,7 +45,7 @@ export class PlayStationProvider implements NewsProvider {
         '[PlayStationProvider] XML DOMParser syntax error:',
         parseError.textContent
       );
-      throw new Error('Received malformed XML data from the PlayStation Blog news feed.');
+      throw new Error('RSS XML parsing failed for PlayStation Blog.');
     }
 
     const itemElements = xmlDoc.querySelectorAll('item');

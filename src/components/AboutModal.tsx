@@ -81,7 +81,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                 <strong className="text-[#1A1A1A]">Live Ingestion:</strong> Connects to Crunchyroll’s official production RSS feed service (<code className="font-mono-accent text-[11px] text-[#1A1A1A]">cr-news-api-service.prd.crunchyrollsvc.com</code>).
               </li>
               <li>
-                <strong className="text-[#1A1A1A]">CORS Boundary:</strong> Uses a lightweight proxy endpoint (<code className="font-mono-accent text-[11px] text-[#1A1A1A]">/api/proxy/crunchyroll/rss</code>) with a 60-second in-memory cache to maintain high responsiveness and respect rate limits.
+                <strong className="text-[#1A1A1A]">CORS Boundary:</strong> Uses a lightweight feed gateway endpoint (<code className="font-mono-accent text-[11px] text-[#1A1A1A]">/api/feed/crunchyroll</code>) with bounded caching to maintain high responsiveness and respect rate limits.
               </li>
               <li>
                 <strong className="text-[#1A1A1A]">Normalization:</strong> Transforms diverse RSS elements, Media RSS thumbnails, HTML entity-encoded descriptions, and category tags into uniform <code className="font-mono-accent text-[11px] text-[#1A1A1A]">Article</code> objects.
@@ -103,7 +103,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             </p>
             <ol className="text-xs text-[#666660] space-y-1.5 list-decimal list-inside font-mono-accent">
               <li>Create <code className="text-[#1A1A1A]">src/providers/providerName/index.ts</code> implementing <code className="text-[#1A1A1A]">NewsProvider</code>.</li>
-              <li>Add a small server-side proxy endpoint if CORS applies to the source.</li>
+              <li>Add the source URL to the feed gateway allowlist in <code className="text-[#1A1A1A]">functions/api/feed/[provider].ts</code> and <code className="text-[#1A1A1A]">server.ts</code>.</li>
               <li>Register the new provider instance in <code className="text-[#1A1A1A]">src/services/feedService.ts</code>.</li>
             </ol>
             <p className="text-[11px] text-[#888880] mt-2 italic">

@@ -1,5 +1,6 @@
 import { Article, NewsProvider } from '../../types';
 import { decodeHtmlEntities, stripHtmlTags } from '../../utils/text';
+import { fetchProviderXml } from '../../services/feedClient';
 
 /**
  * Crunchyroll News Provider
@@ -17,42 +18,11 @@ export class CrunchyrollProvider implements NewsProvider {
   public readonly icon = 'https://www.google.com/s2/favicons?domain=crunchyroll.com&sz=64';
   public readonly categories = ['Anime', 'Manga', 'Industry', 'Streaming'];
 
-  // The local server-side proxy route that fetches from Crunchyroll's official RSS service
-  private readonly proxyUrl = '/api/proxy/crunchyroll/rss';
-
   /**
    * Fetches and normalizes news articles from Crunchyroll.
    */
   public async fetchArticles(options?: { forceFresh?: boolean }): Promise<Article[]> {
-    const url = options?.forceFresh ? `${this.proxyUrl}?fresh=1` : this.proxyUrl;
-
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        headers: {
-          Accept: 'application/xml, text/xml, */*',
-        },
-      });
-    } catch (networkError: any) {
-      console.error(
-        '[CrunchyrollProvider] Network error connecting to proxy:',
-        networkError?.message || networkError
-      );
-      throw new Error(
-        'Unable to reach the Crunchyroll news feed service. Please check your network connection.'
-      );
-    }
-
-    if (!response.ok) {
-      console.error(
-        `[CrunchyrollProvider] Proxy responded with HTTP status ${response.status}: ${response.statusText}`
-      );
-      throw new Error(
-        `Crunchyroll news service returned error status ${response.status}. Please try again later.`
-      );
-    }
-
-    const xmlText = await response.text();
+    const xmlText = await fetchProviderXml(this.id, this.name, options);
     if (!xmlText || xmlText.trim().length === 0) {
       console.warn('[CrunchyrollProvider] Received empty response body from feed');
       return [];
@@ -76,7 +46,7 @@ export class CrunchyrollProvider implements NewsProvider {
         '[CrunchyrollProvider] XML DOMParser syntax error:',
         parseError.textContent
       );
-      throw new Error('Received malformed XML data from the Crunchyroll news feed.');
+      throw new Error('RSS XML parsing failed for Crunchyroll.');
     }
 
     const itemElements = xmlDoc.querySelectorAll('item');
