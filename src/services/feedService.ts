@@ -2,6 +2,7 @@ import { Article, NewsProvider } from '../types';
 import { crunchyrollProvider } from '../providers/crunchyroll';
 import { playStationProvider } from '../providers/playstation';
 import { nintendoProvider } from '../providers/nintendo';
+import { xboxProvider } from '../providers/xbox';
 
 /**
  * FeedService
@@ -12,7 +13,7 @@ import { nintendoProvider } from '../providers/nintendo';
  */
 export class FeedService {
   // Registered news providers
-  private providers: NewsProvider[] = [crunchyrollProvider, playStationProvider, nintendoProvider];
+  private providers: NewsProvider[] = [crunchyrollProvider, playStationProvider, nintendoProvider, xboxProvider];
 
   /**
    * Returns all registered news providers.
