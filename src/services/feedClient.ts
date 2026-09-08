@@ -119,3 +119,76 @@ export async function fetchProviderXml(
 
   return rawBody;
 }
+
+/**
+ * Fetches and parses the JSON response for a registered provider.
+ *
+ * @param providerId The provider identifier (e.g., 'nintendo')
+ * @param providerName The human-readable name of the provider
+ * @param options Additional options such as cache busting
+ * @returns Parsed JSON object ready for provider-specific normalization
+ */
+export async function fetchProviderJson<T = any>(
+  providerId: string,
+  providerName: string,
+  options?: FetchFeedOptions
+): Promise<T> {
+  const query = options?.forceFresh ? '?fresh=1' : '';
+  const endpoint = `/api/feed/${encodeURIComponent(providerId)}${query}`;
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      headers: {
+        Accept: 'application/json, text/plain, */*',
+      },
+    });
+  } catch (networkError: any) {
+    console.error(
+      `[FeedClient] Network error connecting to gateway for ${providerName} (${providerId}):`,
+      networkError?.message || networkError
+    );
+    throw new Error(
+      `Unable to reach the ${providerName} news service. Please check your network connection.`
+    );
+  }
+
+  // 1. Verify request succeeded
+  if (!response.ok) {
+    console.error(
+      `[FeedClient] Gateway returned HTTP status ${response.status} (${response.statusText}) for provider "${providerId}"`
+    );
+
+    if (response.status === 404) {
+      throw new Error(`Feed provider "${providerName}" is not recognized.`);
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      console.error(`[FeedClient] Request blocked for provider "${providerId}".`);
+      throw new Error(`Unable to retrieve provider feed: access was denied.`);
+    }
+
+    if (response.status === 502 || response.status === 504) {
+      throw new Error(
+        `Unable to retrieve provider feed: upstream ${providerName} service is temporarily unavailable.`
+      );
+    }
+
+    throw new Error(
+      `Unable to retrieve provider feed: gateway returned error status ${response.status}.`
+    );
+  }
+
+  // 2. Parse JSON response
+  try {
+    const data = await response.json();
+    return data as T;
+  } catch (parseError: any) {
+    console.error(
+      `[FeedClient] Failed to parse JSON response for ${providerName} (${providerId}):`,
+      parseError?.message || parseError
+    );
+    throw new Error(`Invalid JSON received from ${providerName} feed.`);
+  }
+}
+
