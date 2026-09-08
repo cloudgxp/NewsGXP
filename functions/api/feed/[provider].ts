@@ -20,6 +20,10 @@ const ALLOWED_FEEDS: Record<string, { url: string; name: string }> = {
     url: 'https://blog.playstation.com/feed/',
     name: 'PlayStation Blog',
   },
+  xbox: {
+    url: 'https://news.xbox.com/en-us/feed/',
+    name: 'Xbox Wire',
+  },
 };
 
 export const onRequestGet = async (context: {

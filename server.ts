@@ -5,7 +5,7 @@ import { createServer as createViteServer } from 'vite';
 const app = express();
 const PORT = 3000;
 
-// Simple in-memory cache for Crunchyroll and PlayStation RSS feeds
+// Simple in-memory cache for provider RSS feeds
 interface CacheEntry {
   data: string;
   fetchedAt: number;
@@ -21,6 +21,10 @@ const ALLOWED_FEEDS: Record<string, { url: string; name: string }> = {
   playstation: {
     url: 'https://blog.playstation.com/feed/',
     name: 'PlayStation Blog',
+  },
+  xbox: {
+    url: 'https://news.xbox.com/en-us/feed/',
+    name: 'Xbox Wire',
   },
 };
 
