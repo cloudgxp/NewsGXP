@@ -26,6 +26,10 @@ const NINTENDO_QUERY = 'query LatestNewsArticles($limit: Int!, $offset: Int = 0,
 const NINTENDO_VARS = JSON.stringify({ limit: 30, offset: 0, tags: ['syndicationNcom'] });
 
 const ALLOWED_FEEDS: Record<string, FeedConfig> = {
+  xbox: {
+    url: 'https://news.xbox.com/en-us/feed/',
+    name: 'Xbox Wire',
+  },
   crunchyroll: {
     url: 'https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss',
     name: 'Crunchyroll',
