@@ -1,9 +1,20 @@
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 
 const app = express();
 const PORT = 3000;
+
+// Share one per-client budget across feed aliases, including forced refreshes.
+// The default memory store is per process; use a shared store when scaling out.
+const feedRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many feed requests. Please try again later.' },
+});
 
 // Simple in-memory cache for provider feeds (RSS and JSON)
 interface CacheEntry {
@@ -160,18 +171,18 @@ async function handleFeedRequest(providerId: string, forceFresh: boolean, res: e
 }
 
 // Unified Feed Gateway endpoint
-app.get('/api/feed/:provider', async (req, res) => {
+app.get('/api/feed/:provider', feedRateLimit, async (req, res) => {
   const forceFresh = req.query.fresh === '1' || req.query.fresh === 'true';
   await handleFeedRequest(req.params.provider, forceFresh, res);
 });
 
 // Legacy proxy endpoints for backward compatibility
-app.get('/api/proxy/crunchyroll/rss', async (req, res) => {
+app.get('/api/proxy/crunchyroll/rss', feedRateLimit, async (req, res) => {
   const forceFresh = req.query.fresh === '1' || req.query.fresh === 'true';
   await handleFeedRequest('crunchyroll', forceFresh, res);
 });
 
-app.get('/api/proxy/playstation/rss', async (req, res) => {
+app.get('/api/proxy/playstation/rss', feedRateLimit, async (req, res) => {
   const forceFresh = req.query.fresh === '1' || req.query.fresh === 'true';
   await handleFeedRequest('playstation', forceFresh, res);
 });
