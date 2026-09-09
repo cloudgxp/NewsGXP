@@ -2,23 +2,12 @@
  * Utility functions for text cleaning, HTML entity decoding, and date formatting.
  */
 
+import { decodeHTML } from 'entities';
+
 export function decodeHtmlEntities(text: string): string {
   if (!text) return '';
-  const textarea = typeof document !== 'undefined' ? document.createElement('textarea') : null;
-  if (textarea) {
-    textarea.innerHTML = text;
-    return textarea.value;
-  }
-  // Fallback for non-DOM environments
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&nbsp;/g, ' ');
+  // Decode once as plain text, without parsing markup or touching the DOM.
+  return decodeHTML(text);
 }
 
 export function stripHtmlTags(html: string): string {
