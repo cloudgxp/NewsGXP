@@ -11,6 +11,7 @@ import { fetchProviderXml } from '../../services/feedClient';
 export class PlayStationProvider implements NewsProvider {
   public readonly id = 'playstation';
   public readonly name = 'PlayStation Blog';
+  public readonly topic = 'Gaming';
   public readonly description =
     'Official PlayStation news, game announcements, developer stories, PlayStation Plus updates, and more.';
   public readonly homepage = 'https://blog.playstation.com/';

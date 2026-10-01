@@ -109,6 +109,40 @@ export default function App() {
     [selectedProviderId]
   );
 
+  // Toggle follow/unfollow for an entire topic of providers
+  const handleToggleFollowTopic = useCallback(
+    (topic: string, shouldFollow: boolean) => {
+      const topicProviderIds = feedService.getProviderIdsForTopic(topic);
+      if (topicProviderIds.length === 0) return;
+
+      setFollowedProviders((prev) => {
+        let next: string[];
+        if (shouldFollow) {
+          // Add all providers in topic that aren't already followed
+          const toAdd = topicProviderIds.filter((id) => !prev.includes(id));
+          next = [...prev, ...toAdd];
+        } else {
+          // Unfollow all providers in this topic
+          next = prev.filter((id) => !topicProviderIds.includes(id));
+        }
+
+        try {
+          localStorage.setItem(STORAGE_KEY_FOLLOWED_PROVIDERS, JSON.stringify(next));
+        } catch (e) {
+          console.warn('[NewsGXP] Failed to persist followed providers:', e);
+        }
+
+        // If the active filter was in this unfollowed topic, reset to All
+        if (selectedProviderId && topicProviderIds.includes(selectedProviderId) && !shouldFollow) {
+          setSelectedProviderId(null);
+        }
+
+        return next;
+      });
+    },
+    [selectedProviderId]
+  );
+
   // Load articles for all followed providers
   const loadFeed = useCallback(
     async (forceFresh = false) => {
@@ -228,6 +262,7 @@ export default function App() {
             allProviders={allProviders}
             followedProviderIds={followedProviders}
             onToggleFollow={handleToggleFollow}
+            onToggleFollowTopic={handleToggleFollowTopic}
             onNavigateToFeed={() => handleSelectTab('latest')}
           />
         ) : (

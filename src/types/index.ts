@@ -21,6 +21,7 @@ export interface Article {
 export interface NewsProvider {
   id: string;
   name: string;
+  topic: string;
   description?: string;
   homepage: string;
   icon?: string;

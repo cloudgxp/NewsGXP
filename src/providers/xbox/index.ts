@@ -11,6 +11,7 @@ import { fetchProviderXml } from '../../services/feedClient';
 export class XboxProvider implements NewsProvider {
   public readonly id = 'xbox';
   public readonly name = 'Xbox Wire';
+  public readonly topic = 'Gaming';
   public readonly description =
     'Official Xbox news, game announcements, developer stories, Xbox Game Pass updates, and more.';
   public readonly homepage = 'https://news.xbox.com/en-us/';

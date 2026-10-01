@@ -65,6 +65,7 @@ interface NintendoApiResponse {
 export class NintendoProvider implements NewsProvider {
   public readonly id = 'nintendo';
   public readonly name = 'Nintendo';
+  public readonly topic = 'Gaming';
   public readonly description =
     'Official Nintendo news, game announcements, events, promotions, and Nintendo Switch Online updates.';
   public readonly homepage = 'https://www.nintendo.com/us/whatsnew/';

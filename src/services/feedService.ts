@@ -1,8 +1,12 @@
 import { Article, NewsProvider } from '../types';
-import { crunchyrollProvider } from '../providers/crunchyroll';
+import { openAIProvider } from '../providers/openai';
+import { claudeProvider } from '../providers/claude';
+import { googleProvider } from '../providers/google';
+import { microsoftSkillsProvider } from '../providers/microsoft-skills';
 import { playStationProvider } from '../providers/playstation';
 import { nintendoProvider } from '../providers/nintendo';
 import { xboxProvider } from '../providers/xbox';
+import { crunchyrollProvider } from '../providers/crunchyroll';
 
 /**
  * FeedService
@@ -12,14 +16,50 @@ import { xboxProvider } from '../providers/xbox';
  * network or parsing details.
  */
 export class FeedService {
-  // Registered news providers
-  private providers: NewsProvider[] = [crunchyrollProvider, playStationProvider, nintendoProvider, xboxProvider];
+  // Registered news providers grouped logically across topics
+  private providers: NewsProvider[] = [
+    openAIProvider,
+    claudeProvider,
+    googleProvider,
+    microsoftSkillsProvider,
+    playStationProvider,
+    nintendoProvider,
+    xboxProvider,
+    crunchyrollProvider,
+  ];
 
   /**
    * Returns all registered news providers.
    */
   public getAllProviders(): NewsProvider[] {
     return [...this.providers];
+  }
+
+  /**
+   * Returns all unique topics across registered providers in canonical order.
+   */
+  public getAllTopics(): string[] {
+    const topicOrder = ['AI', 'Technology', 'Gaming', 'Anime'];
+    const discovered: string[] = Array.from(new Set(this.providers.map((p) => p.topic)));
+    // Place known topics first in canonical order, then any other topics
+    return [
+      ...topicOrder.filter((t) => discovered.includes(t)),
+      ...discovered.filter((t) => !topicOrder.includes(t)),
+    ];
+  }
+
+  /**
+   * Returns providers belonging to a specific topic.
+   */
+  public getProvidersByTopic(topic: string): NewsProvider[] {
+    return this.providers.filter((p) => p.topic.toLowerCase() === topic.toLowerCase());
+  }
+
+  /**
+   * Returns provider IDs belonging to a specific topic.
+   */
+  public getProviderIdsForTopic(topic: string): string[] {
+    return this.getProvidersByTopic(topic).map((p) => p.id);
   }
 
   /**
