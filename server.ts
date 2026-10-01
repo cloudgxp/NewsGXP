@@ -59,6 +59,26 @@ const ALLOWED_FEEDS: Record<string, FeedConfig> = {
     },
     fallbackUrl: 'https://www.nintendo.com/us/whatsnew/',
   },
+  openai: {
+    url: 'https://openai.com/news/rss.xml',
+    name: 'OpenAI News',
+  },
+  google: {
+    url: 'https://blog.google/rss/',
+    name: 'Google Blog',
+  },
+  claude: {
+    url: 'https://claude.com/blog',
+    name: 'Claude Blog',
+    contentType: 'text/html; charset=utf-8',
+    headers: {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    },
+  },
+  'microsoft-skills': {
+    url: 'https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=skills-hub-blog',
+    name: 'Microsoft Skills Hub',
+  },
 };
 
 const feedCache = new Map<string, CacheEntry>();

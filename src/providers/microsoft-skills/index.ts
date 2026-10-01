@@ -3,29 +3,29 @@ import { decodeHtmlEntities, stripHtmlTags } from '../../utils/text';
 import { fetchProviderXml } from '../../services/feedClient';
 
 /**
- * Crunchyroll News Provider
+ * Microsoft Skills Hub News Provider
  *
- * Implements the minimal NewsProvider contract for Crunchyroll.
- * All fetching, XML parsing, sanitization, and normalization
- * are self-contained in this provider module.
+ * Implements the NewsProvider contract for Microsoft Tech Community - Skills Hub Blog.
+ * Retrieves and normalizes the official RSS feed.
  */
-export class CrunchyrollProvider implements NewsProvider {
-  public readonly id = 'crunchyroll';
-  public readonly name = 'Crunchyroll';
-  public readonly topic = 'Anime';
+export class MicrosoftSkillsProvider implements NewsProvider {
+  public readonly id = 'microsoft-skills';
+  public readonly name = 'Microsoft Skills Hub';
+  public readonly topic = 'Technology';
   public readonly description =
-    'Anime industry news, breaking series announcements, features, and streaming updates from Crunchyroll News.';
-  public readonly homepage = 'https://www.crunchyroll.com/news';
-  public readonly icon = 'https://www.google.com/s2/favicons?domain=crunchyroll.com&sz=64';
-  public readonly categories = ['Anime', 'Manga', 'Industry', 'Streaming'];
+    'Insights, skilling strategies, and guidance on navigating AI adoption and technical fluency from Microsoft.';
+  public readonly homepage =
+    'https://techcommunity.microsoft.com/category/skills-hub/blog/skills-hub-blog';
+  public readonly icon = 'https://www.google.com/s2/favicons?domain=microsoft.com&sz=64';
+  public readonly categories = ['Technology', 'AI Skills', 'Workplace', 'Adoption'];
 
   /**
-   * Fetches and normalizes news articles from Crunchyroll.
+   * Fetches and normalizes news articles from Microsoft Skills Hub.
    */
   public async fetchArticles(options?: { forceFresh?: boolean }): Promise<Article[]> {
     const xmlText = await fetchProviderXml(this.id, this.name, options);
     if (!xmlText || xmlText.trim().length === 0) {
-      console.warn('[CrunchyrollProvider] Received empty response body from feed');
+      console.warn('[MicrosoftSkillsProvider] Received empty response body from feed');
       return [];
     }
 
@@ -34,20 +34,18 @@ export class CrunchyrollProvider implements NewsProvider {
 
   /**
    * Parses raw RSS XML into normalized Article models.
-   * Tolerates malformed individual items without crashing the feed.
    */
   private parseRssXml(xmlString: string): Article[] {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
 
-    // Check for XML parsing syntax errors
     const parseError = xmlDoc.querySelector('parsererror');
     if (parseError) {
       console.error(
-        '[CrunchyrollProvider] XML DOMParser syntax error:',
+        '[MicrosoftSkillsProvider] XML DOMParser syntax error:',
         parseError.textContent
       );
-      throw new Error('RSS XML parsing failed for Crunchyroll.');
+      throw new Error('RSS XML parsing failed for Microsoft Skills Hub.');
     }
 
     const itemElements = xmlDoc.querySelectorAll('item');
@@ -61,7 +59,7 @@ export class CrunchyrollProvider implements NewsProvider {
         }
       } catch (itemError) {
         console.warn(
-          `[CrunchyrollProvider] Skipped malformed item at index ${index}:`,
+          `[MicrosoftSkillsProvider] Skipped malformed item at index ${index}:`,
           itemError
         );
       }
@@ -85,19 +83,19 @@ export class CrunchyrollProvider implements NewsProvider {
     const rawTitle = item.querySelector('title')?.textContent || '';
     const title = decodeHtmlEntities(rawTitle.trim());
     if (!title) {
-      return null; // Title is required
+      return null;
     }
 
     // 2. Link / URL
     const rawUrl = item.querySelector('link')?.textContent || '';
     const url = rawUrl.trim();
     if (!url || !url.startsWith('http')) {
-      return null; // Valid URL is required
+      return null;
     }
 
     // 3. ID / GUID
     const rawGuid = item.querySelector('guid')?.textContent || '';
-    const id = rawGuid.trim() || url || `cr-article-${fallbackIndex}-${Date.now()}`;
+    const id = rawGuid.trim() || url || `ms-skills-article-${fallbackIndex}-${Date.now()}`;
 
     // 4. Publication Date
     const rawPubDate = item.querySelector('pubDate')?.textContent || '';
@@ -105,8 +103,8 @@ export class CrunchyrollProvider implements NewsProvider {
 
     // 5. Author
     const rawAuthor =
-      item.querySelector('author')?.textContent ||
       item.getElementsByTagNameNS('*', 'creator')[0]?.textContent ||
+      item.querySelector('author')?.textContent ||
       '';
     const author = decodeHtmlEntities(rawAuthor.trim()) || undefined;
 
@@ -116,26 +114,19 @@ export class CrunchyrollProvider implements NewsProvider {
     if (rawDesc) {
       const cleaned = decodeHtmlEntities(stripHtmlTags(rawDesc));
       if (cleaned) {
-        // Truncate cleanly if overly long
         summary = cleaned.length > 280 ? cleaned.slice(0, 277) + '...' : cleaned;
       }
     }
 
-    // 7. Image URL
+    // 7. Image Extraction
     let imageUrl: string | undefined;
-    // Check <media:thumbnail url="...">
-    const mediaThumb = item.getElementsByTagNameNS('*', 'thumbnail')[0];
-    if (mediaThumb) {
-      imageUrl = mediaThumb.getAttribute('url') || undefined;
-    }
-    // Fallback to <media:content url="...">
-    if (!imageUrl) {
-      const mediaContent = item.getElementsByTagNameNS('*', 'content')[0];
-      if (mediaContent) {
-        imageUrl = mediaContent.getAttribute('url') || undefined;
+    if (rawDesc) {
+      const imgMatch = rawDesc.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (imgMatch && imgMatch[1]) {
+        imageUrl = imgMatch[1];
       }
     }
-    // Fallback to <enclosure url="...">
+
     if (!imageUrl) {
       const enclosure = item.querySelector('enclosure');
       if (enclosure) {
@@ -157,6 +148,10 @@ export class CrunchyrollProvider implements NewsProvider {
       }
     });
 
+    if (categories.length === 0) {
+      categories.push('Technology');
+    }
+
     const article: Article = {
       id,
       title,
@@ -173,5 +168,4 @@ export class CrunchyrollProvider implements NewsProvider {
   }
 }
 
-// Export a singleton instance of the Crunchyroll provider
-export const crunchyrollProvider = new CrunchyrollProvider();
+export const microsoftSkillsProvider = new MicrosoftSkillsProvider();

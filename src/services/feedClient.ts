@@ -192,3 +192,69 @@ export async function fetchProviderJson<T = any>(
   }
 }
 
+/**
+ * Fetches the raw HTML string for a registered provider that publishes an HTML feed/page.
+ *
+ * @param providerId The provider identifier (e.g., 'claude')
+ * @param providerName The human-readable name of the provider
+ * @param options Additional options such as cache busting
+ * @returns Raw HTML string ready for provider-specific DOM parsing
+ */
+export async function fetchProviderHtml(
+  providerId: string,
+  providerName: string,
+  options?: FetchFeedOptions
+): Promise<string> {
+  const query = options?.forceFresh ? '?fresh=1' : '';
+  const endpoint = `/api/feed/${encodeURIComponent(providerId)}${query}`;
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      headers: {
+        Accept: 'text/html, application/xhtml+xml, */*',
+      },
+    });
+  } catch (networkError: any) {
+    console.error(
+      `[FeedClient] Network error connecting to gateway for ${providerName} (${providerId}):`,
+      networkError?.message || networkError
+    );
+    throw new Error(
+      `Unable to reach the ${providerName} news service. Please check your network connection.`
+    );
+  }
+
+  if (!response.ok) {
+    console.error(
+      `[FeedClient] Gateway returned HTTP status ${response.status} (${response.statusText}) for provider "${providerId}"`
+    );
+
+    if (response.status === 404) {
+      throw new Error(`Feed provider "${providerName}" is not recognized.`);
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`Unable to retrieve provider feed: access was denied.`);
+    }
+
+    if (response.status === 502 || response.status === 504) {
+      throw new Error(
+        `Unable to retrieve provider feed: upstream ${providerName} service is temporarily unavailable.`
+      );
+    }
+
+    throw new Error(
+      `Unable to retrieve provider feed: gateway returned error status ${response.status}.`
+    );
+  }
+
+  const rawBody = await response.text();
+  if (!rawBody || rawBody.trim().length === 0) {
+    console.warn(`[FeedClient] Received empty response body for provider "${providerId}".`);
+    return '';
+  }
+
+  return rawBody;
+}
+
