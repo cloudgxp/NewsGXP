@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { NewsProvider } from '../types';
+import { TOPIC_ORDER } from '../services/feedService';
 import {
   Search,
   Check,
@@ -7,9 +8,9 @@ import {
   ExternalLink,
   Globe,
   Sparkles,
+  Cloud,
   Cpu,
-  Gamepad2,
-  Tv,
+  Clapperboard,
   Layers,
   CheckCheck,
 } from 'lucide-react';
@@ -22,18 +23,26 @@ interface ProvidersViewProps {
   onNavigateToFeed: () => void;
 }
 
-const TOPIC_ORDER = ['AI', 'Technology', 'Gaming', 'Anime'];
+const TOPIC_DESCRIPTIONS: Record<string, string> = {
+  'Frontier Labs': 'Foundation models, frontier AI research, and major lab announcements',
+  'Cloud & Engineering': 'Cloud AI platforms, developer tools, SDKs, and open-source ecosystems',
+  'Hardware & Edge': 'AI accelerators, GPU compute, silicon, and on-device intelligence',
+  'Generative Media': 'Generative video, image, voice, and music AI platforms',
+};
+
+const toTopicSlug = (topic: string) =>
+  topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const getTopicIcon = (topic: string) => {
   switch (topic.toLowerCase()) {
-    case 'ai':
+    case 'frontier labs':
       return <Sparkles className="w-4 h-4 text-[#F47521]" />;
-    case 'technology':
-      return <Cpu className="w-4 h-4 text-[#3B82F6]" />;
-    case 'gaming':
-      return <Gamepad2 className="w-4 h-4 text-[#8B5CF6]" />;
-    case 'anime':
-      return <Tv className="w-4 h-4 text-[#EC4899]" />;
+    case 'cloud & engineering':
+      return <Cloud className="w-4 h-4 text-[#3B82F6]" />;
+    case 'hardware & edge':
+      return <Cpu className="w-4 h-4 text-[#10B981]" />;
+    case 'generative media':
+      return <Clapperboard className="w-4 h-4 text-[#8B5CF6]" />;
     default:
       return <Layers className="w-4 h-4 text-[#888880]" />;
   }
@@ -56,10 +65,11 @@ export const ProvidersView: React.FC<ProvidersViewProps> = ({
 
   // Canonical list of topics
   const allTopics = useMemo(() => {
+    const canonical: string[] = [...TOPIC_ORDER];
     const discovered: string[] = Array.from(new Set(allProviders.map((p) => p.topic)));
     return [
-      ...TOPIC_ORDER.filter((t) => discovered.includes(t)),
-      ...discovered.filter((t) => !TOPIC_ORDER.includes(t)),
+      ...canonical.filter((t) => discovered.includes(t)),
+      ...discovered.filter((t) => !canonical.includes(t)),
     ];
   }, [allProviders]);
 
@@ -132,8 +142,8 @@ export const ProvidersView: React.FC<ProvidersViewProps> = ({
         </div>
 
         <p className="text-sm sm:text-base text-[#666660] leading-relaxed max-w-2xl font-sans">
-          Organize your news feed by topic or publisher. Subscribe to an entire topic (such as all AI
-          or Gaming sources), or follow individual outlets based on your personal interests.
+          Organize your AI &amp; Tech news feed by beat or publisher. Subscribe to an entire topic
+          (such as Frontier Labs or Cloud &amp; Engineering), or follow individual sources.
         </p>
 
         {/* Search Bar & Topic Filter Bar */}
@@ -181,7 +191,7 @@ export const ProvidersView: React.FC<ProvidersViewProps> = ({
               return (
                 <button
                   key={topic}
-                  id={`topic-filter-${topic.toLowerCase()}`}
+                  id={`topic-filter-${toTopicSlug(topic)}`}
                   type="button"
                   onClick={() => setSelectedTopicFilter(isSelected ? null : topic)}
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-mono-accent uppercase tracking-wider font-bold transition-all cursor-pointer border ${
@@ -246,7 +256,7 @@ export const ProvidersView: React.FC<ProvidersViewProps> = ({
             return (
               <section
                 key={topic}
-                id={`topic-section-${topic.toLowerCase()}`}
+                id={`topic-section-${toTopicSlug(topic)}`}
                 className="bg-white border border-[#D1D1CB] rounded-sm shadow-xs overflow-hidden"
               >
                 {/* Topic Group Header Bar */}
@@ -276,10 +286,7 @@ export const ProvidersView: React.FC<ProvidersViewProps> = ({
                         )}
                       </div>
                       <span className="text-[11px] text-[#888880] font-sans">
-                        {topic === 'AI' && 'Frontier models, AI tooling, and research updates'}
-                        {topic === 'Technology' && 'Cloud, enterprise platforms, developer ecosystems, and hardware'}
-                        {topic === 'Gaming' && 'First-party studio releases, game updates, and console platforms'}
-                        {topic === 'Anime' && 'Streaming announcements, manga industry, and series releases'}
+                        {TOPIC_DESCRIPTIONS[topic] || `Updates and announcements from ${topic}`}
                       </span>
                     </div>
                   </div>
@@ -287,7 +294,7 @@ export const ProvidersView: React.FC<ProvidersViewProps> = ({
                   {/* Topic-Level Subscribe / Unsubscribe Button */}
                   <div className="shrink-0 self-end sm:self-center">
                     <button
-                      id={`topic-follow-btn-${topic.toLowerCase()}`}
+                      id={`topic-follow-btn-${toTopicSlug(topic)}`}
                       type="button"
                       onClick={() => onToggleFollowTopic(topic, !isAllFollowed)}
                       className={`px-3.5 py-1.5 rounded-sm text-xs font-mono-accent uppercase tracking-wider font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 ${

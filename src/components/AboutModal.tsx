@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle2, ArrowRight, Code2, Database, Shield, Radio } from 'lucide-react';
+import { X, ArrowRight, Code2, Radio, Briefcase } from 'lucide-react';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -20,15 +20,12 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         className="bg-[#F7F7F2] border border-[#D1D1CB] shadow-xl rounded-sm max-w-2xl w-full my-8 text-[#2D2D2D] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Bar */}
         <div className="bg-white border-b border-[#D1D1CB] px-6 py-4 flex items-center justify-between">
           <div className="flex items-baseline gap-3">
             <span className="font-mono-accent text-xs bg-[#1A1A1A] text-[#F7F7F2] px-1.5 py-0.5 font-bold tracking-wider rounded-sm">
               GXP
             </span>
-            <h2 className="text-xl font-black tracking-tight text-[#1A1A1A]">
-              About NewsGXP
-            </h2>
+            <h2 className="text-xl font-black tracking-tight text-[#1A1A1A]">About NewsGXP</h2>
           </div>
           <button
             id="close-about-modal-btn"
@@ -40,79 +37,114 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Content Body */}
         <div className="p-6 space-y-6 text-sm leading-relaxed overflow-y-auto max-h-[75vh]">
-          {/* Mission & Identity */}
           <div className="border-b border-[#D1D1CB] pb-4">
             <h3 className="text-xl font-bold font-editorial mb-1 text-[#1A1A1A]">
-              Your news. Your providers.
+              AI &amp; Tech news. Remote AI jobs.
             </h3>
             <p className="text-[#666660]">
-              NewsGXP is a news aggregation portal built on the core principle of modular,
-              decoupled content providers. Rather than lock users into a closed algorithm,
-              NewsGXP enables direct, transparent aggregation from real-world publishers.
+              NewsGXP is an open-source AI &amp; Technology news and remote AI jobs portal powered
+              by Cloudflare Workers, D1, and Workers AI. Follow primary announcements directly from
+              research labs, engineering blogs, and company career portals—with zero third-party job
+              aggregators.
             </p>
           </div>
 
-          {/* Core Architecture */}
           <div>
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A1A19A] mb-2 flex items-center gap-1.5">
               <Code2 className="w-3.5 h-3.5 text-[#F47521]" />
-              Core Architecture Principle
+              Cloudflare-Native Architecture
             </h4>
             <div className="bg-[#F1F1EB] border-l-3 border-[#F47521] p-3 text-xs italic font-editorial text-[#1A1A1A] mb-3">
-              “Providers know how to fetch content. The application knows how to display content.”
+              “Ingested once daily at 8:00 PM EST into Cloudflare D1, enriched by Workers AI, and
+              pruned automatically after 45 days.”
             </div>
             <p className="text-xs text-[#666660]">
-              The application UI only knows about the shared <code className="bg-[#E8E8E1] px-1 py-0.2 rounded-xs font-mono-accent text-[#1A1A1A]">Article</code> model.
-              All source discovery, network protocols, XML/HTML parsing, data sanitization, and thumbnail extraction
-              happen completely inside isolated provider modules.
+              Scheduled Cron Triggers fetch all 32 news feeds and 21 company career portals into{' '}
+              <code className="bg-[#E8E8E1] px-1 py-0.2 rounded-xs font-mono-accent text-[#1A1A1A]">
+                Cloudflare D1
+              </code>
+              , verify &amp; summarize new items via{' '}
+              <code className="bg-[#E8E8E1] px-1 py-0.2 rounded-xs font-mono-accent text-[#1A1A1A]">
+                Workers AI
+              </code>
+              , and preserve your weekly segment diffs cleanly.
             </p>
           </div>
 
-          {/* MVP Scope: Crunchyroll */}
           <div className="bg-white border border-[#D1D1CB] p-4 rounded-sm shadow-xs">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A1A19A] mb-2.5 flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-[#F47521]" />
-              MVP Implementation: Crunchyroll Slice
+              <Briefcase className="w-3.5 h-3.5 text-[#F47521]" />
+              Direct Company Career-Page Remote AI Jobs (21 Companies)
             </h4>
             <ul className="text-xs text-[#666660] space-y-2 list-disc list-inside">
               <li>
-                <strong className="text-[#1A1A1A]">Live Ingestion:</strong> Connects to Crunchyroll’s official production RSS feed service (<code className="font-mono-accent text-[11px] text-[#1A1A1A]">cr-news-api-service.prd.crunchyrollsvc.com</code>).
+                <strong className="text-[#1A1A1A]">Official Portals Only:</strong> Queries official
+                career sites and ATS APIs directly across Big Tech (Google, Microsoft, GitHub, AMD),
+                Frontier Labs (OpenAI, Anthropic, Cohere, Perplexity, Hugging Face, Stability AI), AI
+                Infra (Cloudflare, Databricks, Scale AI, Vercel, GitLab, Cursor, LangChain, Stripe),
+                and Generative Media (ElevenLabs, Runway, Suno).
               </li>
               <li>
-                <strong className="text-[#1A1A1A]">CORS Boundary:</strong> Uses a lightweight feed gateway endpoint (<code className="font-mono-accent text-[11px] text-[#1A1A1A]">/api/feed/crunchyroll</code>) with bounded caching to maintain high responsiveness and respect rate limits.
+                <strong className="text-[#1A1A1A]">Snapshot Diffing for Weekly Segments:</strong>{' '}
+                Tracks original <code className="text-[#1A1A1A]">first_seen_at</code> timestamps to
+                power the <em>New This Week</em> view and one-click Markdown export for YouTube and
+                LinkedIn.
               </li>
               <li>
-                <strong className="text-[#1A1A1A]">Normalization:</strong> Transforms diverse RSS elements, Media RSS thumbnails, HTML entity-encoded descriptions, and category tags into uniform <code className="font-mono-accent text-[11px] text-[#1A1A1A]">Article</code> objects.
-              </li>
-              <li>
-                <strong className="text-[#1A1A1A]">Graceful Fault Tolerance:</strong> Malformed entries are discarded individually without interrupting valid stories.
+                <strong className="text-[#1A1A1A]">Automatic 45-Day Closed Cleanup:</strong>{' '}
+                Closed postings automatically purge 45 days after disappearing from career pages,
+                while still-active and bookmarked roles remain intact.
               </li>
             </ul>
           </div>
 
-          {/* Minimum Steps for Provider #2 */}
+          <div className="bg-white border border-[#D1D1CB] p-4 rounded-sm shadow-xs">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A1A19A] mb-2.5 flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-[#F47521]" />
+              32 Verified AI &amp; Tech News Sources
+            </h4>
+            <ul className="text-xs text-[#666660] space-y-2 list-disc list-inside">
+              <li>
+                <strong className="text-[#1A1A1A]">Frontier Labs:</strong> OpenAI News &amp;
+                Research, Anthropic News, Google DeepMind / Gemini / AI, Meta AI, Mistral AI, and
+                Cohere.
+              </li>
+              <li>
+                <strong className="text-[#1A1A1A]">Cloud &amp; Engineering:</strong> AWS GenAI &amp;
+                ML, Azure AI Foundry, Microsoft AI &amp; Skills Hub, GitHub Blog &amp; Changelog,
+                Google Blog &amp; Developers, Hugging Face, and Perplexity.
+              </li>
+              <li>
+                <strong className="text-[#1A1A1A]">Hardware &amp; Edge:</strong> NVIDIA Generative
+                AI &amp; Developer, AMD AI &amp; Computing, and Apple Intelligence.
+              </li>
+              <li>
+                <strong className="text-[#1A1A1A]">Generative Media:</strong> Stability AI, Runway,
+                Pika, Luma AI, ElevenLabs Product &amp; Research, and Suno Blog &amp; Release Notes.
+              </li>
+            </ul>
+          </div>
+
           <div className="bg-[#F1F1EB] border border-[#D1D1CB] p-4 rounded-sm shadow-xs">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A1A19A] mb-2 flex items-center gap-1.5">
               <ArrowRight className="w-3.5 h-3.5 text-[#F47521]" />
-              Expanding to Provider #2
+              Adding a Source or Company
             </h4>
-            <p className="text-xs text-[#666660] mb-2">
-              Adding a second provider (e.g. IGN, Anime News Network, Hacker News, Reuters) requires only three steps:
-            </p>
             <ol className="text-xs text-[#666660] space-y-1.5 list-decimal list-inside font-mono-accent">
-              <li>Create <code className="text-[#1A1A1A]">src/providers/providerName/index.ts</code> implementing <code className="text-[#1A1A1A]">NewsProvider</code>.</li>
-              <li>Add the source URL to the feed gateway allowlist in <code className="text-[#1A1A1A]">functions/api/feed/[provider].ts</code> and <code className="text-[#1A1A1A]">server.ts</code>.</li>
-              <li>Register the new provider instance in <code className="text-[#1A1A1A]">src/services/feedService.ts</code>.</li>
+              <li>
+                Add news feeds in <code className="text-[#1A1A1A]">src/config/feeds.ts</code>,{' '}
+                <code className="text-[#1A1A1A]">worker/ingest.ts</code>, and{' '}
+                <code className="text-[#1A1A1A]">src/services/feedService.ts</code>.
+              </li>
+              <li>
+                Add company career portals in{' '}
+                <code className="text-[#1A1A1A]">src/config/companies.ts</code>.
+              </li>
             </ol>
-            <p className="text-[11px] text-[#888880] mt-2 italic">
-              No modifications to the article feed, card components, or layout are required.
-            </p>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="bg-[#F1F1EB] border-t border-[#D1D1CB] px-6 py-3.5 flex justify-end">
           <button
             id="about-modal-close-action"

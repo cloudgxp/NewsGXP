@@ -11,7 +11,7 @@ import { fetchProviderXml } from '../../services/feedClient';
 export class GoogleProvider implements NewsProvider {
   public readonly id = 'google';
   public readonly name = 'Google Blog';
-  public readonly topic = 'Technology';
+  public readonly topic = 'Cloud & Engineering';
   public readonly description =
     'Official news, product innovations, Gemini and AI updates, and technology stories across Google.';
   public readonly homepage = 'https://blog.google/';

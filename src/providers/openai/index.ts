@@ -11,7 +11,7 @@ import { fetchProviderXml } from '../../services/feedClient';
 export class OpenAIProvider implements NewsProvider {
   public readonly id = 'openai';
   public readonly name = 'OpenAI News';
-  public readonly topic = 'AI';
+  public readonly topic = 'Frontier Labs';
   public readonly description =
     'Official artificial intelligence research, product releases, safety updates, and developer announcements from OpenAI.';
   public readonly homepage = 'https://openai.com/news/';

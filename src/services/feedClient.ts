@@ -14,7 +14,7 @@ export interface FetchFeedOptions {
 /**
  * Fetches the raw RSS/XML string for a registered provider.
  *
- * @param providerId The provider identifier (e.g., 'crunchyroll', 'playstation')
+ * @param providerId The provider identifier (e.g., 'openai', 'google-ai')
  * @param providerName The human-readable name of the provider
  * @param options Additional options such as cache busting
  * @returns Raw XML string ready for provider-specific DOM parsing
@@ -123,7 +123,7 @@ export async function fetchProviderXml(
 /**
  * Fetches and parses the JSON response for a registered provider.
  *
- * @param providerId The provider identifier (e.g., 'nintendo')
+ * @param providerId The provider identifier (e.g., 'openai')
  * @param providerName The human-readable name of the provider
  * @param options Additional options such as cache busting
  * @returns Parsed JSON object ready for provider-specific normalization
