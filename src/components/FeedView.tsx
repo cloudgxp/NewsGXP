@@ -1,7 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Article } from '../types';
 import { ArticleItem } from './ArticleItem';
-import { AlertCircle, RefreshCw, FileText, Search, ChevronDown, Plus } from 'lucide-react';
+import { fetchWeeklyDigest } from '../services/jobsService';
+import {
+  AlertCircle,
+  RefreshCw,
+  FileText,
+  Search,
+  ChevronDown,
+  Plus,
+  Bookmark,
+  Copy,
+  Check,
+} from 'lucide-react';
+
+export type TimeframeFilter = 'all' | '7d' | '1d' | 'saved';
 
 interface FeedViewProps {
   articles: Article[];
@@ -12,6 +25,11 @@ interface FeedViewProps {
   onSelectCategory: (category: string | null) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  timeframe: TimeframeFilter;
+  onSelectTimeframe: (tf: TimeframeFilter) => void;
+  savedArticleIds: Set<string>;
+  savedCount: number;
+  onToggleSave: (article: Article) => void;
   sourceLabel: string;
   followedProviderCount: number;
   onRetry: () => void;
@@ -28,12 +46,61 @@ export const FeedView: React.FC<FeedViewProps> = ({
   onSelectCategory,
   searchQuery,
   onSearchChange,
+  timeframe,
+  onSelectTimeframe,
+  savedArticleIds,
+  savedCount,
+  onToggleSave,
   sourceLabel,
   followedProviderCount,
   onRetry,
   onClearFilters,
   onNavigateToProviders,
 }) => {
+  const [copiedDigest, setCopiedDigest] = useState(false);
+
+  const handleCopyWeeklyDigest = async () => {
+    try {
+      let markdown = '';
+      if (timeframe === 'saved') {
+        const lines = ['## Saved AI & Tech Stories for Video Prep', ''];
+        for (const a of articles) {
+          const note = a.aiSummary || a.summary;
+          lines.push(`- **[${a.title}](${a.url})** (${a.providerId})`);
+          if (note) lines.push(`  - ${note}`);
+        }
+        markdown = lines.join('\n');
+      } else {
+        try {
+          const digest = await fetchWeeklyDigest();
+          markdown = digest.markdown;
+        } catch {
+          const lines = ['## Top AI & Tech Stories', ''];
+          for (const a of articles.slice(0, 15)) {
+            const note = a.aiSummary || a.summary;
+            lines.push(`- **[${a.title}](${a.url})** (${a.providerId})`);
+            if (note) lines.push(`  - ${note}`);
+          }
+          markdown = lines.join('\n');
+        }
+      }
+      await navigator.clipboard.writeText(markdown);
+      setCopiedDigest(true);
+      setTimeout(() => setCopiedDigest(false), 2200);
+    } catch (err) {
+      console.warn('[FeedView] Failed to copy weekly digest:', err);
+    }
+  };
+
+  const timeframeTabs: { id: TimeframeFilter; label: string }[] = [
+    { id: 'all', label: 'All (45d)' },
+    { id: '7d', label: 'This Week' },
+    { id: '1d', label: 'Today' },
+    { id: 'saved', label: `Saved${savedCount > 0 ? ` (${savedCount})` : ''}` },
+  ];
+
+  const showEmptySources = followedProviderCount === 0 && timeframe !== 'saved';
+
   return (
     <div id="newsgxp-feed-view" className="space-y-4">
       {/* Feed Toolbar */}
@@ -44,22 +111,21 @@ export const FeedView: React.FC<FeedViewProps> = ({
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[#1A1A1A]">
               {sourceLabel}
             </h1>
-            {!isLoading && !error && followedProviderCount > 0 && (
+            {!isLoading && !error && !showEmptySources && (
               <span className="text-[11px] font-mono-accent text-[#888880] uppercase tracking-wider">
                 • {articles.length} {articles.length === 1 ? 'story' : 'stories'}
               </span>
             )}
           </div>
 
-          {/* Right: Search + Topics */}
+          {/* Right: Search + Category Dropdown */}
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
-            {/* Search headlines */}
             <div className="relative flex-1 sm:w-60">
               <Search className="w-3.5 h-3.5 text-[#888880] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 id="feed-search-input"
                 type="text"
-                placeholder="Search headlines..."
+                placeholder="Search headlines & summaries..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className="w-full pl-8 pr-7 py-1.5 text-xs bg-[#F7F7F2] border border-[#D1D1CB] rounded-sm text-[#1A1A1A] placeholder-[#888880] focus:outline-hidden focus:border-[#1A1A1A] font-mono-accent transition-colors"
@@ -76,7 +142,6 @@ export const FeedView: React.FC<FeedViewProps> = ({
               )}
             </div>
 
-            {/* All Topics dropdown */}
             <div className="relative shrink-0">
               <select
                 id="feed-topic-select"
@@ -84,7 +149,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
                 onChange={(e) => onSelectCategory(e.target.value ? e.target.value : null)}
                 className="appearance-none bg-[#F7F7F2] border border-[#D1D1CB] rounded-sm text-xs font-mono-accent text-[#1A1A1A] py-1.5 pl-3 pr-8 focus:outline-hidden focus:border-[#1A1A1A] cursor-pointer hover:border-[#A1A19A] transition-colors"
               >
-                <option value="">All Topics</option>
+                <option value="">All Tags</option>
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -96,51 +161,62 @@ export const FeedView: React.FC<FeedViewProps> = ({
           </div>
         </div>
 
-        {/* Active Filter Badges (if search or topic active) */}
-        {(selectedCategory || searchQuery) && (
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#F1F1EB] text-xs font-mono-accent">
-            <span className="text-[10px] uppercase font-bold text-[#A1A19A] tracking-wider">
-              Filter:
-            </span>
-            {selectedCategory && (
-              <span className="inline-flex items-center gap-1 bg-[#F1F1EB] border border-[#D1D1CB] px-2 py-0.5 rounded-sm text-[11px] text-[#1A1A1A]">
-                Topic: {selectedCategory}
-                <button
-                  type="button"
-                  onClick={() => onSelectCategory(null)}
-                  className="text-[#888880] hover:text-[#1A1A1A] ml-1 cursor-pointer"
-                  aria-label="Remove topic filter"
-                >
-                  ✕
-                </button>
-              </span>
-            )}
-            {searchQuery && (
-              <span className="inline-flex items-center gap-1 bg-[#F1F1EB] border border-[#D1D1CB] px-2 py-0.5 rounded-sm text-[11px] text-[#1A1A1A]">
-                &ldquo;{searchQuery}&rdquo;
-                <button
-                  type="button"
-                  onClick={() => onSearchChange('')}
-                  className="text-[#888880] hover:text-[#1A1A1A] ml-1 cursor-pointer"
-                  aria-label="Remove search query"
-                >
-                  ✕
-                </button>
-              </span>
-            )}
+        {/* Timeframe & Saved Queue Filter Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#F1F1EB]">
+          {timeframeTabs.map((tab) => {
+            const active = timeframe === tab.id;
+            return (
+              <button
+                key={tab.id}
+                id={`timeframe-filter-${tab.id}`}
+                type="button"
+                onClick={() => onSelectTimeframe(tab.id)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-mono-accent uppercase tracking-wider font-bold transition-all cursor-pointer border ${
+                  active
+                    ? 'bg-[#1A1A1A] text-[#F7F7F2] border-[#1A1A1A]'
+                    : 'bg-[#F7F7F2] text-[#666660] border-[#D1D1CB] hover:border-[#A1A19A] hover:text-[#1A1A1A]'
+                }`}
+              >
+                {tab.id === 'saved' && <Bookmark className="w-3 h-3 text-[#F47521]" />}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+
+          {(selectedCategory || searchQuery || timeframe !== 'all') && (
             <button
               type="button"
               onClick={onClearFilters}
-              className="text-[11px] text-[#F47521] hover:underline font-bold uppercase tracking-wider ml-auto cursor-pointer"
+              className="text-[11px] text-[#F47521] hover:underline font-bold uppercase tracking-wider font-mono-accent cursor-pointer"
             >
-              Clear Filters
+              Reset View
             </button>
-          </div>
-        )}
+          )}
+
+          <button
+            id="copy-weekly-digest-btn"
+            type="button"
+            onClick={handleCopyWeeklyDigest}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-mono-accent uppercase tracking-wider font-bold bg-[#1A1A1A] hover:bg-[#333238] text-[#F7F7F2] transition-colors cursor-pointer ml-auto"
+            title="Copy Markdown summary of weekly AI stories & jobs for YouTube/LinkedIn"
+          >
+            {copiedDigest ? (
+              <>
+                <Check className="w-3 h-3 text-emerald-400" />
+                <span>Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3 h-3 text-[#F47521]" />
+                <span>Copy Weekly Digest</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* No Sources Followed State */}
-      {followedProviderCount === 0 && (
+      {showEmptySources && (
         <div
           id="no-sources-followed-state"
           className="bg-white border border-[#D1D1CB] rounded-sm p-8 text-center space-y-3 shadow-xs"
@@ -152,8 +228,8 @@ export const FeedView: React.FC<FeedViewProps> = ({
             No Providers Followed
           </h3>
           <p className="text-xs sm:text-sm text-[#666660] max-w-md mx-auto leading-relaxed">
-            You are not following any news sources right now. Choose providers in the directory to
-            populate your NewsGXP feed.
+            You are not following any AI &amp; Tech sources right now. Choose providers in the
+            directory to populate your NewsGXP feed.
           </p>
           <div className="pt-2">
             <button
@@ -170,7 +246,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
       )}
 
       {/* Error State */}
-      {error && !isLoading && followedProviderCount > 0 && (
+      {error && !isLoading && !showEmptySources && (
         <div
           id="feed-error-state"
           className="bg-white border border-[#D1D1CB] rounded-sm p-8 text-center space-y-3 shadow-xs"
@@ -199,7 +275,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
       )}
 
       {/* Loading Skeleton State */}
-      {isLoading && followedProviderCount > 0 && (
+      {isLoading && !showEmptySources && (
         <div id="feed-loading-state" className="space-y-3.5">
           {[1, 2, 3, 4, 5].map((idx) => (
             <div
@@ -221,7 +297,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
       )}
 
       {/* Empty Filter Results State */}
-      {!isLoading && !error && followedProviderCount > 0 && articles.length === 0 && (
+      {!isLoading && !error && !showEmptySources && articles.length === 0 && (
         <div
           id="feed-empty-state"
           className="bg-white border border-[#D1D1CB] rounded-sm p-8 text-center space-y-3 shadow-xs"
@@ -230,14 +306,16 @@ export const FeedView: React.FC<FeedViewProps> = ({
             <FileText className="w-5 h-5" />
           </div>
           <h3 className="text-lg font-bold font-editorial text-[#1A1A1A]">
-            No Articles Found
+            {timeframe === 'saved' ? 'No Saved Stories Yet' : 'No Articles Found'}
           </h3>
           <p className="text-xs sm:text-sm text-[#666660] max-w-sm mx-auto leading-relaxed">
-            {selectedCategory || searchQuery
-              ? 'No stories match your current topic or search keyword.'
-              : 'No stories are currently available from the selected provider.'}
+            {timeframe === 'saved'
+              ? 'Click the Save button on any article to queue it here for reading or YouTube prep.'
+              : selectedCategory || searchQuery || timeframe !== 'all'
+                ? 'No stories match your current timeframe, tag, or search keyword.'
+                : 'No stories are currently available from the selected provider.'}
           </p>
-          {(selectedCategory || searchQuery) && (
+          {(selectedCategory || searchQuery || timeframe !== 'all') && (
             <div className="pt-2">
               <button
                 id="reset-empty-filters-btn"
@@ -245,7 +323,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
                 onClick={onClearFilters}
                 className="px-4 py-2 bg-[#F1F1EB] hover:bg-[#E8E8E1] text-[#1A1A1A] text-xs font-bold uppercase tracking-wider rounded-sm transition-colors cursor-pointer border border-[#D1D1CB]"
               >
-                Clear Filters
+                Reset Filters
               </button>
             </div>
           )}
@@ -253,10 +331,16 @@ export const FeedView: React.FC<FeedViewProps> = ({
       )}
 
       {/* Article Feed List */}
-      {!isLoading && !error && followedProviderCount > 0 && articles.length > 0 && (
+      {!isLoading && !error && !showEmptySources && articles.length > 0 && (
         <div id="articles-list" className="space-y-3.5">
           {articles.map((article, index) => (
-            <ArticleItem key={article.id} article={article} index={index} />
+            <ArticleItem
+              key={article.id}
+              article={article}
+              index={index}
+              isSaved={savedArticleIds.has(article.id)}
+              onToggleSave={onToggleSave}
+            />
           ))}
         </div>
       )}

@@ -11,7 +11,7 @@ import { fetchProviderXml } from '../../services/feedClient';
 export class MicrosoftSkillsProvider implements NewsProvider {
   public readonly id = 'microsoft-skills';
   public readonly name = 'Microsoft Skills Hub';
-  public readonly topic = 'Technology';
+  public readonly topic = 'Cloud & Engineering';
   public readonly description =
     'Insights, skilling strategies, and guidance on navigating AI adoption and technical fluency from Microsoft.';
   public readonly homepage =

@@ -1,14 +1,17 @@
 import React from 'react';
-import { RefreshCw, Info, Newspaper, Radio } from 'lucide-react';
+import { RefreshCw, Info, Newspaper, Radio, Briefcase } from 'lucide-react';
 import { formatRelativeTime } from '../utils/text';
 
+export type ActiveTab = 'latest' | 'jobs' | 'providers' | 'about';
+
 interface HeaderProps {
-  activeTab: 'latest' | 'providers' | 'about';
-  onSelectTab: (tab: 'latest' | 'providers' | 'about') => void;
+  activeTab: ActiveTab;
+  onSelectTab: (tab: ActiveTab) => void;
   onRefresh: () => void;
   isRefreshing: boolean;
   lastUpdated: Date | null;
   articleCount: number;
+  jobCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   isRefreshing,
   lastUpdated,
   articleCount,
+  jobCount,
 }) => {
   return (
     <header
@@ -41,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
             </h1>
           </button>
           <span className="text-xs font-medium uppercase tracking-widest text-[#888880] border-l border-[#D1D1CB] pl-4 hidden md:inline">
-            Your news. Your providers.
+            AI &amp; Tech news. Remote AI jobs.
           </span>
         </div>
 
@@ -63,6 +67,24 @@ export const Header: React.FC<HeaderProps> = ({
               {articleCount > 0 && activeTab === 'latest' && (
                 <span className="text-[10px] px-1.5 py-0.2 rounded-sm font-mono-accent bg-[#F47521]/15 text-[#F47521]">
                   {articleCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              id="nav-jobs-btn"
+              onClick={() => onSelectTab('jobs')}
+              className={`pb-1 transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 ${
+                activeTab === 'jobs'
+                  ? 'text-[#F47521] border-[#F47521]'
+                  : 'text-[#888880] border-transparent hover:text-[#2D2D2D]'
+              }`}
+            >
+              <Briefcase className="w-4 h-4" />
+              <span>Remote AI Jobs</span>
+              {jobCount > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-sm font-mono-accent bg-[#F47521]/15 text-[#F47521]">
+                  {jobCount}
                 </span>
               )}
             </button>
@@ -100,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
               id="refresh-feed-btn"
               onClick={onRefresh}
               disabled={isRefreshing}
-              title="Fetch fresh feed from followed sources"
+              title="Reload latest cached feed and remote AI jobs"
               className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-[#F1F1EB] active:bg-[#E8E8E1] border border-[#D1D1CB] text-[#1A1A1A] rounded-sm text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
             >
               <RefreshCw

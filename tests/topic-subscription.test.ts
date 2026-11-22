@@ -1,54 +1,141 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { feedService } from '../src/services/feedService';
+import {
+  feedService,
+  TOPIC_ORDER,
+  DEFAULT_FOLLOWED_PROVIDERS,
+} from '../src/services/feedService';
+import { ALLOWED_FEEDS } from '../src/config/feeds';
+import { PROVIDER_META } from '../worker/ingest';
 
-test('feedService topic grouping and taxonomy', () => {
+test('feedService topic grouping and 32 verified AI/Tech sources', () => {
   const topics = feedService.getAllTopics();
-  assert.deepEqual(topics, ['AI', 'Technology', 'Gaming', 'Anime']);
+  assert.deepEqual(topics, [...TOPIC_ORDER]);
+  assert.deepEqual(topics, [
+    'Frontier Labs',
+    'Cloud & Engineering',
+    'Hardware & Edge',
+    'Generative Media',
+  ]);
 
-  const aiProviders = feedService.getProvidersByTopic('AI');
-  assert.equal(aiProviders.length, 2);
-  assert.deepEqual(aiProviders.map((p) => p.id), ['openai', 'claude']);
+  const frontierLabs = feedService.getProvidersByTopic('Frontier Labs');
+  assert.equal(frontierLabs.length, 9);
+  assert.deepEqual(
+    frontierLabs.map((p) => p.id),
+    [
+      'openai',
+      'openai-research',
+      'anthropic',
+      'google-ai',
+      'google-gemini',
+      'google-deepmind',
+      'meta-ai',
+      'mistral',
+      'cohere',
+    ]
+  );
 
-  const techProviders = feedService.getProvidersByTopic('Technology');
-  assert.equal(techProviders.length, 2);
-  assert.deepEqual(techProviders.map((p) => p.id), ['google', 'microsoft-skills']);
+  const cloudEng = feedService.getProvidersByTopic('Cloud & Engineering');
+  assert.equal(cloudEng.length, 11);
+  assert.deepEqual(
+    cloudEng.map((p) => p.id),
+    [
+      'google',
+      'google-developers',
+      'microsoft-ai',
+      'azure-foundry',
+      'microsoft-skills',
+      'aws-genai',
+      'aws-ml',
+      'github-blog',
+      'github-changelog',
+      'huggingface',
+      'perplexity',
+    ]
+  );
 
-  const gamingProviders = feedService.getProvidersByTopic('Gaming');
-  assert.equal(gamingProviders.length, 3);
-  assert.deepEqual(gamingProviders.map((p) => p.id), ['playstation', 'nintendo', 'xbox']);
+  const hardwareEdge = feedService.getProvidersByTopic('Hardware & Edge');
+  assert.equal(hardwareEdge.length, 4);
+  assert.deepEqual(
+    hardwareEdge.map((p) => p.id),
+    ['nvidia-genai', 'nvidia-developer', 'amd-blogs', 'apple-intelligence']
+  );
 
-  const animeProviders = feedService.getProvidersByTopic('Anime');
-  assert.equal(animeProviders.length, 1);
-  assert.deepEqual(animeProviders.map((p) => p.id), ['crunchyroll']);
+  const genMedia = feedService.getProvidersByTopic('Generative Media');
+  assert.equal(genMedia.length, 8);
+  assert.deepEqual(
+    genMedia.map((p) => p.id),
+    [
+      'stability-ai',
+      'runway-news',
+      'pika-blog',
+      'luma-news',
+      'elevenlabs-product',
+      'elevenlabs-research',
+      'suno-blog',
+      'suno-release-notes',
+    ]
+  );
+
+  // Verify Gaming, Anime, xAI, Claude Blog, and Midjourney are removed
+  assert.equal(feedService.getProvidersByTopic('Gaming').length, 0);
+  assert.equal(feedService.getProvidersByTopic('Anime').length, 0);
+  for (const removedId of [
+    'crunchyroll',
+    'playstation',
+    'nintendo',
+    'xbox',
+    'xai',
+    'claude',
+    'midjourney',
+  ]) {
+    assert.equal(feedService.getProvider(removedId), undefined);
+    assert.equal(ALLOWED_FEEDS[removedId], undefined);
+    assert.equal(PROVIDER_META[removedId], undefined);
+  }
+});
+
+test('feedService, ALLOWED_FEEDS, and worker PROVIDER_META stay in 1-to-1 sync', () => {
+  const providerIds = feedService.getAllProviders().map((p) => p.id).sort();
+  const allowedIds = Object.keys(ALLOWED_FEEDS).sort();
+  const workerMetaIds = Object.keys(PROVIDER_META).sort();
+
+  assert.equal(providerIds.length, 32);
+  assert.deepEqual(providerIds, allowedIds);
+  assert.deepEqual(providerIds, workerMetaIds);
+
+  for (const p of feedService.getAllProviders()) {
+    assert.equal(
+      PROVIDER_META[p.id].topic,
+      p.topic,
+      `Topic mismatch for provider "${p.id}"`
+    );
+  }
+
+  assert.ok(DEFAULT_FOLLOWED_PROVIDERS.length > 0);
+  for (const defaultId of DEFAULT_FOLLOWED_PROVIDERS) {
+    assert.ok(feedService.getProvider(defaultId), `Default provider "${defaultId}" must exist`);
+  }
 });
 
 test('topic follow and unfollow simulation', () => {
   let followed: string[] = [];
 
-  // 1. Follow entire AI topic
-  const aiIds = feedService.getProviderIdsForTopic('AI');
-  followed = [...followed, ...aiIds.filter((id) => !followed.includes(id))];
-  assert.deepEqual(followed, ['openai', 'claude']);
+  const labIds = feedService.getProviderIdsForTopic('Frontier Labs');
+  followed = [...followed, ...labIds.filter((id) => !followed.includes(id))];
+  assert.equal(followed.length, 9);
 
-  // 2. Follow 1 provider from Anime
-  followed.push('crunchyroll');
-  assert.deepEqual(followed, ['openai', 'claude', 'crunchyroll']);
+  followed.push('huggingface');
+  assert.equal(followed.length, 10);
 
-  // 3. Unfollow 1 provider from AI
-  followed = followed.filter((id) => id !== 'claude');
-  assert.deepEqual(followed, ['openai', 'crunchyroll']);
+  followed = followed.filter((id) => id !== 'anthropic');
+  assert.equal(followed.length, 9);
+  assert.ok(!followed.includes('anthropic'));
 
-  // Check partial topic status
-  const aiFollowed = aiIds.filter((id) => followed.includes(id));
-  assert.equal(aiFollowed.length, 1);
-  assert.ok(aiFollowed.length < aiIds.length, 'AI is partially followed');
+  followed = [...followed, ...labIds.filter((id) => !followed.includes(id))];
+  assert.equal(followed.length, 10);
+  assert.ok(followed.includes('anthropic'));
 
-  // 4. Re-follow entire AI topic
-  followed = [...followed, ...aiIds.filter((id) => !followed.includes(id))];
-  assert.deepEqual(followed.sort(), ['claude', 'crunchyroll', 'openai']);
-
-  // 5. Unfollow entire AI topic
-  followed = followed.filter((id) => !aiIds.includes(id));
-  assert.deepEqual(followed, ['crunchyroll']);
+  followed = followed.filter((id) => !labIds.includes(id));
+  assert.deepEqual(followed, ['huggingface']);
 });
