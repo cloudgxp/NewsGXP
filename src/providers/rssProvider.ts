@@ -269,7 +269,9 @@ export class BaseRssProvider implements NewsProvider {
 
   private parseXmlRegex(xmlString: string): Article[] {
     const articles: Article[] = [];
-    const isAtom = xmlString.includes('<feed') && (xmlString.includes('xmlns="http://www.w3.org/2005/Atom"') || xmlString.includes('<entry'));
+    const isAtom =
+      /<feed\b/i.test(xmlString) &&
+      (/<entry\b/i.test(xmlString) || /\bxmlns\s*=\s*["'][^"']*\/2005\/Atom["']/i.test(xmlString));
 
     if (isAtom) {
       const entryRegex = /<entry[\s\S]*?<\/entry>/gi;
@@ -278,7 +280,7 @@ export class BaseRssProvider implements NewsProvider {
       while ((entryMatch = entryRegex.exec(xmlString)) !== null) {
         const entryXml = entryMatch[0];
         const titleMatch = entryXml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-        const title = titleMatch ? decodeHtmlEntities(titleMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, '').trim()) : '';
+        const title = titleMatch ? decodeHtmlEntities(stripHtmlTags(titleMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1'))) : '';
 
         const linkMatch = entryXml.match(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["']alternate["']/i) ||
                           entryXml.match(/<link[^>]+href=["']([^"']+)["']/i) ||
@@ -323,7 +325,7 @@ export class BaseRssProvider implements NewsProvider {
       while ((itemMatch = itemRegex.exec(xmlString)) !== null) {
         const itemXml = itemMatch[0];
         const titleMatch = itemXml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-        const title = titleMatch ? decodeHtmlEntities(titleMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, '').trim()) : '';
+        const title = titleMatch ? decodeHtmlEntities(stripHtmlTags(titleMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1'))) : '';
 
         const linkMatch = itemXml.match(/<link[^>]*>([\s\S]*?)<\/link>/i) ||
                           itemXml.match(/<guid[^>]*isPermaLink=["']true["'][^>]*>([\s\S]*?)<\/guid>/i);

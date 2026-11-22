@@ -44,8 +44,14 @@ export function normalizeIsoDate(raw?: string | null): string | null {
   return parsed.toISOString();
 }
 
-function stripTags(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim();
+export function stripTags(html: string): string {
+  let prev: string;
+  let curr = html;
+  do {
+    prev = curr;
+    curr = curr.replace(/<[^>]*>/g, ' ');
+  } while (curr !== prev);
+  return curr.replace(/[<>]/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 
 function cleanCdata(value: string): string {
@@ -91,8 +97,8 @@ export function parseRssOrAtom(
 
   const articles: ParsedArticle[] = [];
   const isAtom =
-    xmlString.includes('<feed') &&
-    (xmlString.includes('http://www.w3.org/2005/Atom') || xmlString.includes('<entry'));
+    /<feed\b/i.test(xmlString) &&
+    (/<entry\b/i.test(xmlString) || /\bxmlns\s*=\s*["'][^"']*\/2005\/Atom["']/i.test(xmlString));
 
   if (isAtom) {
     const entryRegex = /<entry\b[\s\S]*?<\/entry>/gi;

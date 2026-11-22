@@ -44,7 +44,7 @@ export class AnthropicProvider implements NewsProvider {
         inner.match(/<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>/i);
 
       const rawTitle = titleMatch ? titleMatch[1] : inner;
-      const title = decodeHtmlEntities(rawTitle.replace(/<[^>]+>/g, '').trim());
+      const title = decodeHtmlEntities(stripHtmlTags(rawTitle));
 
       if (title.length > 5) {
         articles.push({
@@ -94,7 +94,7 @@ export class MetaAiProvider implements NewsProvider {
       const imgMatch = window.match(/<img[^>]+src=["'](https:\/\/scontent[^"']+)["']/i);
 
       const title = headingMatch
-        ? decodeHtmlEntities(headingMatch[1].replace(/<[^>]+>/g, '').trim())
+        ? decodeHtmlEntities(stripHtmlTags(headingMatch[1]))
         : slugToTitle(slug);
 
       articles.push({
@@ -144,7 +144,7 @@ export class CohereProvider implements NewsProvider {
         window.match(/<p[^>]*class="[^"]*text-web3-16[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
 
       const title = headingMatch
-        ? decodeHtmlEntities(headingMatch[1].replace(/<[^>]+>/g, '').trim())
+        ? decodeHtmlEntities(stripHtmlTags(headingMatch[1]))
         : slugToTitle(slug);
 
       if (title && title.length > 5) {
@@ -196,7 +196,7 @@ export class PerplexityProvider implements NewsProvider {
     ];
 
     while ((m = headingRegex.exec(html)) !== null) {
-      const title = decodeHtmlEntities(m[1].replace(/<[^>]+>/g, '').trim());
+      const title = decodeHtmlEntities(stripHtmlTags(m[1]));
       if (title.length > 5 && !ignore.includes(title)) {
         articles.push({
           id: `perplexity-changelog-${idx}`,
@@ -239,7 +239,7 @@ export class AmdBlogsProvider implements NewsProvider {
       const url = m[1];
       if (seen.has(url)) continue;
       const inner = m[2];
-      const title = decodeHtmlEntities(inner.replace(/<[^>]+>/g, '').trim());
+      const title = decodeHtmlEntities(stripHtmlTags(inner));
 
       if (title.length > 8 && !title.includes('Read more')) {
         seen.add(url);

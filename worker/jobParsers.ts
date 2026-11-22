@@ -12,7 +12,7 @@
 
 import { decodeHTML } from 'entities';
 import { CompanyCareerConfig } from '../src/config/companies';
-import { normalizeCanonicalUrl, normalizeIsoDate } from './parsers';
+import { normalizeCanonicalUrl, normalizeIsoDate, stripTags } from './parsers';
 
 export type JobAiCategory =
   | 'ML & Research'
@@ -54,7 +54,7 @@ const EXPLICIT_AI_KEYWORD_REGEX =
   /\b(ai|artificial intelligence|machine learning|deep learning|llms?|large language|generative ai|genai|gen ai|agents?|agentic|copilot|nlp|natural language|computer vision|multimodal|neural|transformer|diffusion|foundation model|applied scientist|research scientist|mlops|inference|gpu|cuda|rocm|vector|rag|embedding|fine-tuning|reinforcement learning)\b/i;
 
 function stripHtml(html: string): string {
-  return decodeHTML(html.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim());
+  return decodeHTML(stripTags(html));
 }
 
 function makeSnippet(raw?: string | null): string | null {

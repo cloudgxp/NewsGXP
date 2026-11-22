@@ -8,6 +8,15 @@ import { parseHtmlProvider, parseRssOrAtom } from '../worker/parsers';
 import { parseEnrichmentJson } from '../worker/enrich';
 import { runNewsIngestion } from '../worker/ingest';
 
+function matchesHost(rawUrl: string, domain: string): boolean {
+  try {
+    const { hostname } = new URL(rawUrl);
+    return hostname === domain || hostname.endsWith(`.${domain}`);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Lightweight D1Database adapter backed by Node's built-in SQLite (node:sqlite)
  * so migrations and SQL queries execute identically against real SQLite.
@@ -178,10 +187,10 @@ test('runNewsIngestion deduplicates, caps Workers AI, purges >45d unbookmarked, 
 
   globalThis.fetch = (async (input: any) => {
     const url = String(input);
-    if (url.includes('openai.com')) {
+    if (matchesHost(url, 'openai.com')) {
       return new Response(mockRss, { status: 200 });
     }
-    if (url.includes('anthropic.com')) {
+    if (matchesHost(url, 'anthropic.com')) {
       return new Response(mockAnthropicHtml, { status: 200 });
     }
     return new Response('', { status: 404 });
@@ -295,16 +304,16 @@ test('Worker API serves /api/health, /api/articles, protected /api/sync, /api/fe
 
   globalThis.fetch = (async (input: any) => {
     const url = String(input);
-    if (url.includes('google.com/about/careers')) {
+    if (matchesHost(url, 'google.com')) {
       return new Response('<html></html>', { status: 200 });
     }
     if (
-      url.includes('greenhouse.io') ||
-      url.includes('ashbyhq.com') ||
-      url.includes('workable.com') ||
-      url.includes('github.careers') ||
-      url.includes('careers.amd.com') ||
-      url.includes('careers.microsoft.com')
+      matchesHost(url, 'greenhouse.io') ||
+      matchesHost(url, 'ashbyhq.com') ||
+      matchesHost(url, 'workable.com') ||
+      matchesHost(url, 'github.careers') ||
+      matchesHost(url, 'careers.amd.com') ||
+      matchesHost(url, 'careers.microsoft.com')
     ) {
       return new Response(JSON.stringify({ jobs: [], data: { positions: [] } }), { status: 200 });
     }

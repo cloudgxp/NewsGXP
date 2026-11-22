@@ -12,7 +12,13 @@ export function decodeHtmlEntities(text: string): string {
 
 export function stripHtmlTags(html: string): string {
   if (!html) return '';
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  let prev: string;
+  let curr = html;
+  do {
+    prev = curr;
+    curr = curr.replace(/<[^>]*>/g, ' ');
+  } while (curr !== prev);
+  return curr.replace(/[<>]/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 
 export function formatDate(dateString?: string): string {
